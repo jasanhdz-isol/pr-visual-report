@@ -3,7 +3,7 @@ const path = require('path');
 const { loadDescriptions } = require('./describe');
 
 function generateReport(options) {
-  const { input, output, template, descriptions: descriptionsPath } = options;
+  const { input, output, template, descriptions: descriptionsPath, format } = options;
   const capturasDir = path.resolve(input || './capturas');
   const outputPath = path.resolve(output || './reporte.md');
 
@@ -25,7 +25,6 @@ function generateReport(options) {
   if (fs.existsSync(descriptionsFile)) {
     descriptions = JSON.parse(fs.readFileSync(descriptionsFile, 'utf8'));
   } else {
-    // Intentar cargar desde el directorio padre
     const parentDesc = path.join(path.dirname(capturasDir), 'descriptions.json');
     if (fs.existsSync(parentDesc)) {
       descriptions = JSON.parse(fs.readFileSync(parentDesc, 'utf8'));
@@ -48,28 +47,26 @@ function generateReport(options) {
     }
   });
 
-  // Determinar si generar un solo archivo o varios por mes
   const monthKeys = Object.keys(groups);
   const generateSeparate = monthKeys.length > 1 || options.separateByMonth;
-
-  // Determinar directorio relativo de imágenes
   const outputDir = path.dirname(outputPath);
   const imageDir = path.relative(outputDir, capturasDir);
 
   if (generateSeparate) {
-    // Generar archivos separados por mes
     const baseName = path.basename(outputPath, '.md');
-
     monthKeys.forEach(month => {
-      const monthMarkdown = generateMonthMarkdown(month, groups[month], imageDir, descriptions, options);
+      const monthMarkdown = format === 'company'
+        ? generateCompanyFormat(month, groups[month], imageDir, descriptions, options)
+        : generateDetailedFormat(month, groups[month], imageDir, descriptions, options);
       const monthOutput = path.join(outputDir, `${month}_${baseName}.md`);
       fs.writeFileSync(monthOutput, monthMarkdown);
       console.log(`✓ Reporte generado: ${monthOutput}`);
     });
   } else {
-    // Generar un solo archivo
     const month = monthKeys[0];
-    const markdown = generateMonthMarkdown(month, groups[month], imageDir, descriptions, options);
+    const markdown = format === 'company'
+      ? generateCompanyFormat(month, groups[month], imageDir, descriptions, options)
+      : generateDetailedFormat(month, groups[month], imageDir, descriptions, options);
     fs.writeFileSync(outputPath, markdown);
     console.log(`✓ Reporte generado: ${outputPath}`);
   }
@@ -78,52 +75,83 @@ function generateReport(options) {
   console.log(`  ${totalPRs} PRs, ${files.length} imágenes`);
 }
 
-function generateMonthMarkdown(month, prs, imageDir, descriptions, options) {
+function generateDetailedFormat(month, prs, imageDir, descriptions, options) {
   const monthName = month.charAt(0).toUpperCase() + month.slice(1);
   let markdown = '';
 
-  // Encabezado
   markdown += `# Reporte de Actividades - ${monthName}\n\n`;
   markdown += `**Fecha de generación:** ${new Date().toLocaleDateString('es-ES')}\n\n`;
-  markdown += `---\n\n`;
 
-  // Lista de PRs
-  markdown += `## Pull Requests del mes\n\n`;
-  markdown += `| PR | Descripción |\n`;
-  markdown += `|-----|-------------|\n`;
+  const prEntries = Object.entries(prs).sort((a, b) => parseInt(a[0]) - parseInt(b[0]));
+  const prCount = prEntries.length;
+  const totalImages = prEntries.reduce((sum, [, images]) => sum + images.length, 0);
 
-  for (const [pr, images] of Object.entries(prs).sort((a, b) => parseInt(a[0]) - parseInt(b[0]))) {
+  markdown += `## Resumen del mes\n\n`;
+  markdown += `Durante el mes de **${monthName}** se completaron **${prCount} Pull Requests** `;
+  markdown += `con un total de **${totalImages} capturas de pantalla** documentando los cambios realizados.\n\n`;
+
+  const features = [];
+  const fixes = [];
+  const refactors = [];
+
+  prEntries.forEach(([pr]) => {
     const desc = descriptions[pr];
-    const descText = desc ? desc.text.substring(0, 60) + (desc.text.length > 60 ? '...' : '') : 'Sin descripción';
-    markdown += `| [PR #${pr}](https://github.com/*/pull/${pr}) | ${descText} |\n`;
+    if (desc && desc.prTitle) {
+      const title = desc.prTitle.toLowerCase();
+      if (title.includes('feat') || title.includes('feature')) {
+        features.push({ pr, title: desc.prTitle });
+      } else if (title.includes('fix') || title.includes('bug')) {
+        fixes.push({ pr, title: desc.prTitle });
+      } else if (title.includes('refactor') || title.includes('cleanup')) {
+        refactors.push({ pr, title: desc.prTitle });
+      } else {
+        features.push({ pr, title: desc.prTitle });
+      }
+    }
+  });
+
+  if (features.length > 0 || fixes.length > 0 || refactors.length > 0) {
+    markdown += `### Categorías\n\n`;
+    if (features.length > 0) markdown += `- **Nuevas funcionalidades:** ${features.length} PRs\n`;
+    if (fixes.length > 0) markdown += `- **Correcciones:** ${fixes.length} PRs\n`;
+    if (refactors.length > 0) markdown += `- **Refactorizaciones:** ${refactors.length} PRs\n`;
+    markdown += `\n`;
   }
 
-  markdown += `\n---\n\n`;
+  markdown += `---\n\n`;
+  markdown += `## Pull Requests del mes\n\n`;
+
+  prEntries.forEach(([pr, images], index) => {
+    const desc = descriptions[pr];
+    const descText = desc ? desc.text : 'Sin descripción disponible';
+    const prTitle = desc && desc.prTitle ? desc.prTitle : `PR #${pr}`;
+    const imageCount = images.filter(i => i.kind.startsWith('diff_')).length;
+
+    markdown += `### ${index + 1}. [PR #${pr}](${getImageUrl(pr)}) - ${prTitle}\n\n`;
+    markdown += `> ${descText.substring(0, 200)}${descText.length > 200 ? '...' : ''}\n\n`;
+    markdown += `- **Capturas:** ${imageCount + 1} imágenes (descripción + ${imageCount} partes de diff)\n\n`;
+  });
+
+  markdown += `---\n\n`;
   markdown += `## Capturas\n\n`;
 
-  // Capturas por PR
   let sectionNumber = 1;
-  for (const [pr, images] of Object.entries(prs).sort((a, b) => parseInt(a[0]) - parseInt(b[0]))) {
+  for (const [pr, images] of prEntries) {
     const desc = descriptions[pr];
 
-    // Título con descripción si existe
     if (desc && desc.text) {
       markdown += `### ${sectionNumber}. PR #${pr} - ${desc.prTitle || ''}\n\n`;
-
-      // Agregar descripción completa
       markdown += `${desc.text}\n\n`;
     } else {
       markdown += `### ${sectionNumber}. PR #${pr}\n\n`;
     }
 
-    // Descripción
     const descImage = images.find(i => i.kind === 'desc');
     if (descImage) {
       const imgPath = imageDir ? `${imageDir}/${descImage.file}` : descImage.file;
       markdown += `![PR #${pr} descripción](${imgPath})\n\n`;
     }
 
-    // Diffs
     const diffImages = images
       .filter(i => i.kind.startsWith('diff_'))
       .sort((a, b) => a.idx - b.idx);
@@ -141,6 +169,85 @@ function generateMonthMarkdown(month, prs, imageDir, descriptions, options) {
   }
 
   return markdown;
+}
+
+function generateCompanyFormat(month, prs, imageDir, descriptions, options) {
+  const monthName = month.charAt(0).toUpperCase() + month.slice(1);
+  const monthYear = new Date().getFullYear();
+  let markdown = '';
+
+  // Encabezado empresa
+  markdown += `# Actividades de ${monthName} ${monthYear}\n\n`;
+  markdown += `**Usuario:** Jasan Hernández (jasanhdz-isol)\n`;
+  markdown += `**Proyecto:** Automatización del Foro Fotográfico\n`;
+  markdown += `**Repositorio:** [automatizacion_foro_fotografico_frontend](https://github.com/Servicios-Liverpool-Infraestructura/automatizacion_foro_fotografico_frontend)\n\n`;
+  markdown += `---\n\n`;
+
+  // Resumen narrativo
+  const prEntries = Object.entries(prs).sort((a, b) => parseInt(a[0]) - parseInt(b[0]));
+  const prCount = prEntries.length;
+
+  markdown += `En el mes de **${monthName}** se completaron **${prCount} Pull Requests** `;
+  markdown += `abarcando nuevas funcionalidades, correcciones y refactorizaciones del sistema.\n\n`;
+
+  // Secciones narrativas por cada PR
+  let sectionNum = 1;
+  prEntries.forEach(([pr, images]) => {
+    const desc = descriptions[pr];
+    const prTitle = desc && desc.prTitle ? desc.prTitle : `PR #${pr}`;
+    const descText = desc ? desc.text : 'Sin descripción disponible';
+    const imageCount = images.filter(i => i.kind.startsWith('diff_')).length;
+
+    markdown += `## ${sectionNum}. ${prTitle}\n\n`;
+    markdown += `${descText}\n\n`;
+    markdown += `*PR [#${pr}](${getImageUrl(pr)}) - ${imageCount + 1} capturas*\n\n`;
+    sectionNum++;
+  });
+
+  markdown += `---\n\n`;
+
+  // Tabla resumen
+  markdown += `## Pull Requests del mes\n\n`;
+  markdown += `| PR | Descripción | Capturas |\n`;
+  markdown += `|-----|-------------|----------|\n`;
+
+  prEntries.forEach(([pr, images]) => {
+    const desc = descriptions[pr];
+    const prTitle = desc && desc.prTitle ? desc.prTitle : `Sin descripción`;
+    const imageCount = images.filter(i => i.kind.startsWith('diff_')).length + 1;
+    markdown += `| [#${pr}](${getImageUrl(pr)}) | ${prTitle} | ${imageCount} |\n`;
+  });
+
+  markdown += `\n---\n\n`;
+
+  // Capturas al final
+  markdown += `## Capturas\n\n`;
+
+  for (const [pr, images] of prEntries) {
+    const desc = descriptions[pr];
+    markdown += `### PR #${pr} - ${desc && desc.prTitle ? desc.prTitle : ''}\n\n`;
+
+    const descImage = images.find(i => i.kind === 'desc');
+    if (descImage) {
+      const imgPath = imageDir ? `${imageDir}/${descImage.file}` : descImage.file;
+      markdown += `![PR #${pr} descripción](${imgPath})\n\n`;
+    }
+
+    const diffImages = images
+      .filter(i => i.kind.startsWith('diff_'))
+      .sort((a, b) => a.idx - b.idx);
+
+    diffImages.forEach(img => {
+      const imgPath = imageDir ? `${imageDir}/${img.file}` : img.file;
+      markdown += `![PR #${pr} diff](${imgPath})\n\n`;
+    });
+  }
+
+  return markdown;
+}
+
+function getImageUrl(pr) {
+  return `https://github.com/Servicios-Liverpool-Infraestructura/automatizacion_foro_fotografico_frontend/pull/${pr}`;
 }
 
 module.exports = { generateReport };

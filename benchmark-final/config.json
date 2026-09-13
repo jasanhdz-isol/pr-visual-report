@@ -1,0 +1,15 @@
+{
+  "repo": "Servicios-Liverpool-Infraestructura/automatizacion_foro_fotografico_frontend",
+  "output": "./benchmark-final",
+  "months": [
+    {
+      "name": "junio",
+      "prs": [
+        { "id": 842, "label": "skeleton loaders" },
+        { "id": 846, "label": "GOB-1790 logistics alignment" },
+        { "id": 855, "label": "waiting photograph status" },
+        { "id": 857, "label": "refactor logistics" }
+      ]
+    }
+  ]
+}

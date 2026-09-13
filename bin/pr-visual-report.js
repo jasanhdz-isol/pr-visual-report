@@ -103,6 +103,7 @@ program
   .option('-t, --template <template>', 'Template markdown personalizado')
   .option('-s, --separate-by-month', 'Generar archivos separados por mes')
   .option('-d, --descriptions <descriptions>', 'Archivo descriptions.json')
+  .option('-f, --format <format>', 'Formato del reporte: detailed o company', 'detailed')
   .action(async (options) => {
     await generateReport(options);
   });
