@@ -2,6 +2,88 @@ const fs = require('fs');
 const path = require('path');
 const markdown = require('markdown');
 
+function preProcessTables(mdContent) {
+  const lines = mdContent.split('\n');
+  let result = [];
+  let i = 0;
+  let tableIndex = 0;
+
+  while (i < lines.length) {
+    const line = lines[i].trim();
+    
+    if (line.startsWith('|') && line.endsWith('|')) {
+      const tableLines = [];
+      while (i < lines.length && lines[i].trim().startsWith('|') && lines[i].trim().endsWith('|')) {
+        tableLines.push(lines[i].trim());
+        i++;
+      }
+      const tableHtml = buildHtmlTable(tableLines);
+      const placeholder = `XZTABLE${tableIndex}XZ`;
+      tablePlaceholders[placeholder] = tableHtml;
+      tableIndex++;
+      result.push(placeholder);
+    } else {
+      result.push(lines[i]);
+      i++;
+    }
+  }
+
+  return result.join('\n');
+}
+
+const tablePlaceholders = {};
+
+function restoreTables(html) {
+  let result = html;
+  for (const [placeholder, tableHtml] of Object.entries(tablePlaceholders)) {
+    result = result.replace(new RegExp(placeholder, 'g'), tableHtml);
+  }
+  return result;
+}
+
+function buildHtmlTable(rows) {
+  if (rows.length < 3) return rows.join('\n');
+
+  const parseRow = (row) => {
+    return row.split('|').slice(1, -1).map(cell => cell.trim());
+  };
+
+  const isSeparator = (row) => {
+    const content = row.replace(/\|/g, '').trim();
+    return /^[\-:]+$/.test(content);
+  };
+
+  const convertLinks = (text) => {
+    return text.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2">$1</a>');
+  };
+
+  const headerCells = parseRow(rows[0]);
+  const dataRows = [];
+
+  for (let i = 1; i < rows.length; i++) {
+    if (!isSeparator(rows[i])) {
+      dataRows.push(parseRow(rows[i]));
+    }
+  }
+
+  let html = '<table>\n<thead>\n<tr>\n';
+  headerCells.forEach(header => {
+    html += `  <th>${convertLinks(header)}</th>\n`;
+  });
+  html += '</tr>\n</thead>\n<tbody>\n';
+
+  dataRows.forEach(cells => {
+    html += '<tr>\n';
+    cells.forEach(cell => {
+      html += `  <td>${convertLinks(cell)}</td>\n`;
+    });
+    html += '</tr>\n';
+  });
+
+  html += '</tbody>\n</table>';
+  return html;
+}
+
 function generateHtml(mdContent) {
   const css = `
     @page { size: A4; margin: 2cm; }
@@ -32,20 +114,28 @@ function generateHtml(mdContent) {
     table {
       width: 100%;
       border-collapse: collapse;
-      margin: 12px 0;
+      margin: 16px 0;
       font-size: 10pt;
+      page-break-inside: avoid;
+    }
+    thead {
+      display: table-header-group;
     }
     th {
-      background: #0f3460;
+      background: #1a1a2e;
       color: white;
-      padding: 8px 10px;
+      padding: 10px 12px;
       text-align: left;
+      font-weight: bold;
+      border: 1px solid #0a2647;
     }
     td {
-      border: 1px solid #ddd;
-      padding: 6px 10px;
+      border: 1px solid #ccc;
+      padding: 8px 12px;
+      vertical-align: top;
     }
-    tr:nth-child(even) { background: #f8f9fa; }
+    tr:nth-child(even) { background: #f4f6f8; }
+    tr:nth-child(odd) { background: #ffffff; }
     img {
       max-width: 100%;
       display: block;
@@ -55,9 +145,19 @@ function generateHtml(mdContent) {
     }
     hr { border: none; border-top: 1px solid #ddd; margin: 16px 0; }
     a { color: #0f3460; text-decoration: none; }
+    blockquote {
+      border-left: 4px solid #0f3460;
+      margin: 12px 0;
+      padding: 8px 16px;
+      background: #f8f9fa;
+      font-style: italic;
+    }
+    em { color: #555; font-size: 9pt; }
   `;
 
-  const htmlBody = markdown.parse(mdContent);
+  const preProcessed = preProcessTables(mdContent);
+  let htmlBody = markdown.parse(preProcessed);
+  htmlBody = restoreTables(htmlBody);
 
   return `<!DOCTYPE html>
 <html lang="es">
@@ -84,7 +184,6 @@ function convertToPdf(options) {
   const mdContent = fs.readFileSync(inputPath, 'utf8');
   const htmlContent = generateHtml(mdContent);
 
-  // Guardar HTML temporal
   const htmlPath = outputPath.replace('.pdf', '.html');
   fs.writeFileSync(htmlPath, htmlContent);
 
