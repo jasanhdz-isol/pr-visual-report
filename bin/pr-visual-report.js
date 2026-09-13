@@ -103,7 +103,7 @@ program
   .option('-t, --template <template>', 'Template markdown personalizado')
   .option('-s, --separate-by-month', 'Generar archivos separados por mes')
   .option('-d, --descriptions <descriptions>', 'Archivo descriptions.json')
-  .option('-f, --format <format>', 'Formato del reporte: detailed o company', 'detailed')
+  .option('-f, --format <format>', 'Formato del reporte: company (default) o detailed', 'company')
   .action(async (options) => {
     await generateReport(options);
   });
@@ -123,6 +123,7 @@ program
   .option('-c, --config <config>', 'Archivo de configuración JSON')
   .option('-s, --separate-by-month', 'Generar archivos separados por mes')
   .option('-d, --with-descriptions', 'Incluir descripciones (GitHub + IA)')
+  .option('-f, --format <format>', 'Formato del reporte: company (default) o detailed', 'company')
   .action(async (options) => {
     if (!options.config) {
       console.error('Error: Proporciona --config con el archivo de configuración');
@@ -147,7 +148,8 @@ program
     const reportOptions = {
       input: outputDir,
       output: path.join(outputDir, 'reporte.md'),
-      separateByMonth: options.separateByMonth
+      separateByMonth: options.separateByMonth,
+      format: options.format
     };
     await generateReport(reportOptions);
 
@@ -168,6 +170,7 @@ program
   .description('Flujo completo: capture + describe + report + pdf')
   .option('-c, --config <config>', 'Archivo de configuración JSON')
   .option('-s, --separate-by-month', 'Generar archivos separados por mes')
+  .option('-f, --format <format>', 'Formato del reporte: company (default) o detailed', 'company')
   .action(async (options) => {
     if (!options.config) {
       console.error('Error: Proporciona --config con el archivo de configuración');
@@ -190,7 +193,8 @@ program
     const reportOptions = {
       input: outputDir,
       output: path.join(outputDir, 'reporte.md'),
-      separateByMonth: options.separateByMonth
+      separateByMonth: options.separateByMonth,
+      format: options.format
     };
     await generateReport(reportOptions);
 

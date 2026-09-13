@@ -208,14 +208,14 @@ function generateCompanyFormat(month, prs, imageDir, descriptions, options) {
 
   // Tabla resumen
   markdown += `## Pull Requests del mes\n\n`;
-  markdown += `| PR | Descripción | Capturas |\n`;
-  markdown += `|-----|-------------|----------|\n`;
+  markdown += `| PR | Descripción | Archivos | Estado |\n`;
+  markdown += `|-----|-------------|----------|--------|\n`;
 
   prEntries.forEach(([pr, images]) => {
     const desc = descriptions[pr];
     const prTitle = desc && desc.prTitle ? desc.prTitle : `Sin descripción`;
     const imageCount = images.filter(i => i.kind.startsWith('diff_')).length + 1;
-    markdown += `| [#${pr}](${getImageUrl(pr)}) | ${prTitle} | ${imageCount} |\n`;
+    markdown += `| [#${pr}](${getImageUrl(pr)}) | ${prTitle} | ${imageCount} | Fusionado |\n`;
   });
 
   markdown += `\n---\n\n`;

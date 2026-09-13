@@ -2,16 +2,50 @@
 
 **Fecha de generación:** 13/9/2026
 
+## Resumen del mes
+
+Durante el mes de **Junio** se completaron **4 Pull Requests** con un total de **241 capturas de pantalla** documentando los cambios realizados.
+
+### Categorías
+
+- **Nuevas funcionalidades:** 3 PRs
+- **Refactorizaciones:** 1 PRs
+
 ---
 
 ## Pull Requests del mes
 
-| PR | Descripción |
-|-----|-------------|
-| [PR #842](https://github.com/*/pull/842) | Este Pull Request introduce la funcionalidad de "skeleton lo... |
-| [PR #846](https://github.com/*/pull/846) | Esta PR mejora la experiencia de usuario de la interfaz de L... |
-| [PR #855](https://github.com/*/pull/855) | Esta PR añade soporte para el nuevo estado de enriquecimient... |
-| [PR #857](https://github.com/*/pull/857) | Esta PR moderniza el microfrontend de logística a través de ... |
+### 1. [PR #842](https://github.com/Servicios-Liverpool-Infraestructura/automatizacion_foro_fotografico_frontend/pull/842) - skeleton loaders
+
+> Este Pull Request introduce la funcionalidad de "skeleton loaders" en la aplicación de logística. El objetivo principal es mejorar la experiencia del usuario al mostrar indicadores visuales de carga e...
+
+- **Capturas:** 18 imágenes (descripción + 17 partes de diff)
+
+### 2. [PR #846](https://github.com/Servicios-Liverpool-Infraestructura/automatizacion_foro_fotografico_frontend/pull/846) - GOB-1790 logistics alignment
+
+> Esta PR mejora la experiencia de usuario de la interfaz de Logística y Gestión de Usuarios.
+
+  Cambios incluidos:
+
+  - Normaliza el espaciado y el relleno en las subpáginas de Logística para mantener ...
+
+- **Capturas:** 10 imágenes (descripción + 9 partes de diff)
+
+### 3. [PR #855](https://github.com/Servicios-Liverpool-Infraestructura/automatizacion_foro_fotografico_frontend/pull/855) - waiting photograph status
+
+> Esta PR añade soporte para el nuevo estado de enriquecimiento `WAITING_PHOTOGRAPH` en el flujo de resumen de enriquecimiento de Front QA.
+
+  Cambios incluidos:
+
+  - Añade la etiqueta de estado `Pendie...
+
+- **Capturas:** 3 imágenes (descripción + 2 partes de diff)
+
+### 4. [PR #857](https://github.com/Servicios-Liverpool-Infraestructura/automatizacion_foro_fotografico_frontend/pull/857) - refactor logistics
+
+> Esta PR moderniza el microfrontend de logística a través de refactorizaciones incrementales centradas en la mantenibilidad, la consistencia y la limpieza segura sin cambiar el comportamiento del negoc...
+
+- **Capturas:** 210 imágenes (descripción + 209 partes de diff)
 
 ---
 

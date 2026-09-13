@@ -1,65 +1,81 @@
-# Reporte de Actividades - Junio
+# Actividades de Junio 2026
 
-**Fecha de generación:** 13/9/2026
-
-## Resumen del mes
-
-Durante el mes de **Junio** se completaron **4 Pull Requests** con un total de **241 capturas de pantalla** documentando los cambios realizados.
-
-### Categorías
-
-- **Nuevas funcionalidades:** 3 PRs
-- **Refactorizaciones:** 1 PRs
+**Usuario:** Jasan Hernández (jasanhdz-isol)
+**Proyecto:** Automatización del Foro Fotográfico
+**Repositorio:** [automatizacion_foro_fotografico_frontend](https://github.com/Servicios-Liverpool-Infraestructura/automatizacion_foro_fotografico_frontend)
 
 ---
 
-## Pull Requests del mes
+En el mes de **Junio** se completaron **4 Pull Requests** abarcando nuevas funcionalidades, correcciones y refactorizaciones del sistema.
 
-### 1. [PR #842](https://github.com/*/pull/842) - skeleton loaders
-
-> Este Pull Request introduce la funcionalidad de "skeleton loaders" en la aplicación de logística. El objetivo principal es mejorar la experiencia del usuario al mostrar indicadores visuales de carga e...
-
-- **Capturas:** 18 imágenes (descripción + 17 partes de diff)
-
-### 2. [PR #846](https://github.com/*/pull/846) - GOB-1790 logistics alignment
-
-> Esta PR mejora la experiencia de usuario de la interfaz de Logística y Gestión de Usuarios.
-
-  Cambios incluidos:
-
-  - Normaliza el espaciado y el relleno en las subpáginas de Logística para mantener ...
-
-- **Capturas:** 10 imágenes (descripción + 9 partes de diff)
-
-### 3. [PR #855](https://github.com/*/pull/855) - waiting photograph status
-
-> Esta PR añade soporte para el nuevo estado de enriquecimiento `WAITING_PHOTOGRAPH` en el flujo de resumen de enriquecimiento de Front QA.
-
-  Cambios incluidos:
-
-  - Añade la etiqueta de estado `Pendie...
-
-- **Capturas:** 3 imágenes (descripción + 2 partes de diff)
-
-### 4. [PR #857](https://github.com/*/pull/857) - refactor logistics
-
-> Esta PR moderniza el microfrontend de logística a través de refactorizaciones incrementales centradas en la mantenibilidad, la consistencia y la limpieza segura sin cambiar el comportamiento del negoc...
-
-- **Capturas:** 210 imágenes (descripción + 209 partes de diff)
-
----
-
-## Capturas
-
-### 1. PR #842 - skeleton loaders
+## 1. skeleton loaders
 
 Este Pull Request introduce la funcionalidad de "skeleton loaders" en la aplicación de logística. El objetivo principal es mejorar la experiencia del usuario al mostrar indicadores visuales de carga en lugar de elementos vacíos mientras se recuperan los datos.
 
 Específicamente, se han realizado los siguientes cambios: se ha creado un componente `FileCardSkeleton` que renderiza una versión esquelética del `FileCard`, mostrando la estructura y el diseño esperado con elementos de `Skeleton`. Además, se ha modificado el componente `FiltersContainer` para que muestre `Skeleton` para los filtros de negocio, origen y estado mientras se están cargando, utilizando la nueva funcionalidad de `loading` expuesta por `useGetFunction`.
 
-![PR #842 descripción](junio_pr842_desc.png)
+*PR [#842](https://github.com/Servicios-Liverpool-Infraestructura/automatizacion_foro_fotografico_frontend/pull/842) - 18 capturas*
 
-**Diff (17 partes):**
+## 2. GOB-1790 logistics alignment
+
+Esta PR mejora la experiencia de usuario de la interfaz de Logística y Gestión de Usuarios.
+
+  Cambios incluidos:
+
+  - Normaliza el espaciado y el relleno en las subpáginas de Logística para mantener el contenido alineado durante las transiciones de ruta.
+  - Actualiza el espaciado de los títulos/saludos de la página de Logística para que la navegación entre subpáginas no muestre saltos de diseño visibles.
+  - Añade un hook reutilizable useDebouncedValue en @libs/hooks.
+  - Refactoriza el flujo de búsqueda de Operadores para separar la entrada escrita, la búsqueda enviada, la acción de borrar, el comportamiento de desenfoque y la selección de sugerencias.
+  - Aplica debounce a la búsqueda de correo electrónico de Operadores para que las solicitudes se ejecuten después de que el usuario deje de escribir.
+  - Mantiene el comportamiento de búsqueda inmediata para Enter, desenfoque, "ver más", borrar y sugerencias seleccionadas.
+
+*PR [#846](https://github.com/Servicios-Liverpool-Infraestructura/automatizacion_foro_fotografico_frontend/pull/846) - 10 capturas*
+
+## 3. waiting photograph status
+
+Esta PR añade soporte para el nuevo estado de enriquecimiento `WAITING_PHOTOGRAPH` en el flujo de resumen de enriquecimiento de Front QA.
+
+  Cambios incluidos:
+
+  - Añade la etiqueta de estado `Pendiente de imagen`.
+  - Renderiza `WAITING_PHOTOGRAPH` utilizando el mismo estilo de chip verde `successTag` que se utiliza actualmente para `Finalizado`.
+  - Añade `Pendiente de imagen` al filtro de estado del resumen de enriquecimiento.
+  - Mapea la opción de filtro seleccionada a `WAITING_PHOTOGRAPH` para que se envíe correctamente en la solicitud de asignaciones de producto.
+
+*PR [#855](https://github.com/Servicios-Liverpool-Infraestructura/automatizacion_foro_fotografico_frontend/pull/855) - 3 capturas*
+
+## 4. refactor logistics
+
+Esta PR moderniza el microfrontend de logística a través de refactorizaciones incrementales centradas en la mantenibilidad, la consistencia y la limpieza segura sin cambiar el comportamiento del negocio.
+
+El trabajo incluye una limpieza página por página de los flujos principales de logística: Delivery, DeliveryScan, HomePicker, Inbound, Outbound, OutboundScan, PalletContainers, ScanMerch y Scanning. Varios componentes de página grandes se simplificaron extrayendo piezas de UI locales, estabilizando manejadores, normalizando el estado de las pestañas y reduciendo la lógica duplicada o innecesaria.
+
+También elimina código muerto confirmado en los componentes de logística activos: importaciones no utilizadas, valores de hook no utilizados, props no utilizados, componentes locales inalcanzables, callbacks redundantes y estilos obsoletos. Se corrigió un pequeño error en SearchProcessChange, donde al enviar con Enter se hacía referencia a un valor indefinido en lugar del texto de búsqueda normalizado actual.
+
+El estilo se limpió moviendo los estilos JSX en línea a módulos CSS con ámbito, manteniendo intacto el estilo de SVG/iconos para evitar regresiones visuales. Finalmente, se eliminaron los archivos de logística _deprecated previamente puestos en cuarentena después de confirmar que ya no formaban parte del árbol de origen activo.
+
+En general, esta PR reduce la deuda técnica, mejora la consistencia del código en las páginas/componentes de logística y deja el módulo en un estado más seguro para futuros trabajos de características.
+
+*PR [#857](https://github.com/Servicios-Liverpool-Infraestructura/automatizacion_foro_fotografico_frontend/pull/857) - 210 capturas*
+
+---
+
+## Pull Requests del mes
+
+| PR | Descripción | Archivos | Estado |
+|-----|-------------|----------|--------|
+| [#842](https://github.com/Servicios-Liverpool-Infraestructura/automatizacion_foro_fotografico_frontend/pull/842) | skeleton loaders | 18 | Fusionado |
+| [#846](https://github.com/Servicios-Liverpool-Infraestructura/automatizacion_foro_fotografico_frontend/pull/846) | GOB-1790 logistics alignment | 10 | Fusionado |
+| [#855](https://github.com/Servicios-Liverpool-Infraestructura/automatizacion_foro_fotografico_frontend/pull/855) | waiting photograph status | 3 | Fusionado |
+| [#857](https://github.com/Servicios-Liverpool-Infraestructura/automatizacion_foro_fotografico_frontend/pull/857) | refactor logistics | 210 | Fusionado |
+
+---
+
+## Capturas
+
+### PR #842 - skeleton loaders
+
+![PR #842 descripción](junio_pr842_desc.png)
 
 ![PR #842 diff](junio_pr842_diff_0.png)
 
@@ -95,24 +111,9 @@ Específicamente, se han realizado los siguientes cambios: se ha creado un compo
 
 ![PR #842 diff](junio_pr842_diff_16.png)
 
----
-
-### 2. PR #846 - GOB-1790 logistics alignment
-
-Esta PR mejora la experiencia de usuario de la interfaz de Logística y Gestión de Usuarios.
-
-  Cambios incluidos:
-
-  - Normaliza el espaciado y el relleno en las subpáginas de Logística para mantener el contenido alineado durante las transiciones de ruta.
-  - Actualiza el espaciado de los títulos/saludos de la página de Logística para que la navegación entre subpáginas no muestre saltos de diseño visibles.
-  - Añade un hook reutilizable useDebouncedValue en @libs/hooks.
-  - Refactoriza el flujo de búsqueda de Operadores para separar la entrada escrita, la búsqueda enviada, la acción de borrar, el comportamiento de desenfoque y la selección de sugerencias.
-  - Aplica debounce a la búsqueda de correo electrónico de Operadores para que las solicitudes se ejecuten después de que el usuario deje de escribir.
-  - Mantiene el comportamiento de búsqueda inmediata para Enter, desenfoque, "ver más", borrar y sugerencias seleccionadas.
+### PR #846 - GOB-1790 logistics alignment
 
 ![PR #846 descripción](junio_pr846_desc.png)
-
-**Diff (9 partes):**
 
 ![PR #846 diff](junio_pr846_diff_0.png)
 
@@ -132,44 +133,17 @@ Esta PR mejora la experiencia de usuario de la interfaz de Logística y Gestión
 
 ![PR #846 diff](junio_pr846_diff_8.png)
 
----
-
-### 3. PR #855 - waiting photograph status
-
-Esta PR añade soporte para el nuevo estado de enriquecimiento `WAITING_PHOTOGRAPH` en el flujo de resumen de enriquecimiento de Front QA.
-
-  Cambios incluidos:
-
-  - Añade la etiqueta de estado `Pendiente de imagen`.
-  - Renderiza `WAITING_PHOTOGRAPH` utilizando el mismo estilo de chip verde `successTag` que se utiliza actualmente para `Finalizado`.
-  - Añade `Pendiente de imagen` al filtro de estado del resumen de enriquecimiento.
-  - Mapea la opción de filtro seleccionada a `WAITING_PHOTOGRAPH` para que se envíe correctamente en la solicitud de asignaciones de producto.
+### PR #855 - waiting photograph status
 
 ![PR #855 descripción](junio_pr855_desc.png)
-
-**Diff (2 partes):**
 
 ![PR #855 diff](junio_pr855_diff_0.png)
 
 ![PR #855 diff](junio_pr855_diff_1.png)
 
----
-
-### 4. PR #857 - refactor logistics
-
-Esta PR moderniza el microfrontend de logística a través de refactorizaciones incrementales centradas en la mantenibilidad, la consistencia y la limpieza segura sin cambiar el comportamiento del negocio.
-
-El trabajo incluye una limpieza página por página de los flujos principales de logística: Delivery, DeliveryScan, HomePicker, Inbound, Outbound, OutboundScan, PalletContainers, ScanMerch y Scanning. Varios componentes de página grandes se simplificaron extrayendo piezas de UI locales, estabilizando manejadores, normalizando el estado de las pestañas y reduciendo la lógica duplicada o innecesaria.
-
-También elimina código muerto confirmado en los componentes de logística activos: importaciones no utilizadas, valores de hook no utilizados, props no utilizados, componentes locales inalcanzables, callbacks redundantes y estilos obsoletos. Se corrigió un pequeño error en SearchProcessChange, donde al enviar con Enter se hacía referencia a un valor indefinido en lugar del texto de búsqueda normalizado actual.
-
-El estilo se limpió moviendo los estilos JSX en línea a módulos CSS con ámbito, manteniendo intacto el estilo de SVG/iconos para evitar regresiones visuales. Finalmente, se eliminaron los archivos de logística _deprecated previamente puestos en cuarentena después de confirmar que ya no formaban parte del árbol de origen activo.
-
-En general, esta PR reduce la deuda técnica, mejora la consistencia del código en las páginas/componentes de logística y deja el módulo en un estado más seguro para futuros trabajos de características.
+### PR #857 - refactor logistics
 
 ![PR #857 descripción](junio_pr857_desc.png)
-
-**Diff (209 partes):**
 
 ![PR #857 diff](junio_pr857_diff_0.png)
 
@@ -588,6 +562,4 @@ En general, esta PR reduce la deuda técnica, mejora la consistencia del código
 ![PR #857 diff](junio_pr857_diff_207.png)
 
 ![PR #857 diff](junio_pr857_diff_208.png)
-
----
 
