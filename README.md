@@ -6,6 +6,7 @@ Herramienta CLI para capturar screenshots de Pull Requests de GitHub y generar r
 
 - **Modo interactivo** - Asistente paso a paso para configurar reportes
 - **Búsqueda por fecha** - Encuentra automáticamente tus PRs por rango de fechas
+- **Descripciones con IA** - Gemini AI genera resúmenes cuando GitHub no tiene descripción
 - Captura automática de descripción y diff de PRs
 - Generación de reportes en Markdown
 - Conversión a PDF con estilo profesional
@@ -73,9 +74,11 @@ pr-visual-report generate --config pr-list.json --separate-by-month
 | `query` | Consultar PRs por rango de fechas |
 | `login` | Abrir navegador para autenticarse |
 | `capture` | Capturar screenshots de PRs |
+| `describe` | Obtener/generar descripciones (GitHub + Gemini AI) |
 | `report` | Generar reporte Markdown |
 | `pdf` | Convertir Markdown a PDF |
 | `generate` | Flujo completo (capture + report + pdf) |
+| `full` | Flujo completo con IA (capture + describe + report + pdf) |
 
 ## Flujo de trabajo
 
@@ -243,6 +246,15 @@ output/
 - GitHub CLI (`gh`) autenticado
 - Python 3 (para detección de imágenes en blanco)
 - Pillow (Python): `pip install Pillow`
+
+### Para descripciones con IA (opcional)
+
+- API key de Gemini (gratis): https://aistudio.google.com/apikey
+- Configurar variable de entorno:
+
+```bash
+export GEMINI_API_KEY=tu_api_key_aqui
+```
 
 ## Documentación
 

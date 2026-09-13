@@ -2,16 +2,24 @@ const { execSync } = require('child_process');
 const fs = require('fs');
 const path = require('path');
 
+const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent';
+
+function getGeminiApiKey() {
+  const key = process.env.GEMINI_API_KEY;
+  if (!key) {
+    throw new Error('GEMINI_API_KEY no está configurada. Obtén una gratis en https://aistudio.google.com/apikey');
+  }
+  return key;
+}
+
 function cleanGitHubDescription(body) {
   if (!body) return null;
 
-  // Extraer solo la sección de Description
   const descMatch = body.match(/## Description\s*\n([\s\S]*?)(?=## |$)/i);
   if (descMatch && descMatch[1].trim().length > 10) {
     return descMatch[1].trim().replace(/\r\n/g, '\n');
   }
 
-  // Si no hay sección Description, limpiar el template
   let cleaned = body
     .replace(/## What type of PR is this[\s\S]*?(?=## |$)/i, '')
     .replace(/## Related Tickets[\s\S]*?(?=## |$)/i, '')
@@ -45,39 +53,41 @@ function obtainGitHubDiff(prNumber, repo) {
   }
 }
 
-async function generateAIDescription(diff, prTitle) {
+async function generateGeminiDescription(diff, prTitle) {
   try {
-    const response = await fetch('http://localhost:11434/api/generate', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model: 'llama3.2',
-        prompt: `Eres un desarrollador de software explicando un cambio en código. 
+    const apiKey = getGeminiApiKey();
+    const prompt = `Eres un desarrollador de software explicando un cambio en código.
 Genera un resumen en español (máximo 3 párrafos) de lo que hace este Pull Request.
 
 Título del PR: ${prTitle}
 
-Diff:
+Diff (primeras 8000 caracteres):
 ${diff.substring(0, 8000)}
 
-Resumen:`,
-        stream: false
+Resumen:`;
+
+    const response = await fetch(`${GEMINI_API_URL}?key=${apiKey}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contents: [{ parts: [{ text: prompt }] }],
+        generationConfig: {
+          temperature: 0.7,
+          maxOutputTokens: 500
+        }
       })
     });
 
-    const data = await response.json();
-    return data.response || null;
-  } catch {
-    return null;
-  }
-}
+    if (!response.ok) {
+      const error = await response.text();
+      throw new Error(`Gemini API error: ${response.status} - ${error}`);
+    }
 
-function checkOllamaRunning() {
-  try {
-    execSync('curl -s http://localhost:11434/api/tags', { encoding: 'utf8' });
-    return true;
-  } catch {
-    return false;
+    const data = await response.json();
+    return data.candidates?.[0]?.content?.parts?.[0]?.text || null;
+  } catch (error) {
+    console.error(`  Error Gemini: ${error.message}`);
+    return null;
   }
 }
 
@@ -101,11 +111,12 @@ async function describePRs(config) {
   }
 
   const descriptions = loadDescriptions(outputDir);
-  const ollamaAvailable = checkOllamaRunning();
+  const geminiAvailable = !!process.env.GEMINI_API_KEY;
 
-  if (!ollamaAvailable) {
-    console.log('⚠ Ollama no está corriendo. Solo se usarán descripciones de GitHub.\n');
-    console.log('  Para usar IA, ejecuta: ollama serve\n');
+  if (!geminiAvailable) {
+    console.log('⚠ GEMINI_API_KEY no está configurada. Solo se usarán descripciones de GitHub.\n');
+    console.log('  Para usar IA, ejecuta: export GEMINI_API_KEY=tu_api_key\n');
+    console.log('  Obtén una gratis en: https://aistudio.google.com/apikey\n');
   }
 
   const prList = [];
@@ -138,7 +149,6 @@ async function describePRs(config) {
 
     console.log(`[${i + 1}/${prList.length}] PR #${pr.id} - ${pr.label || ''}...`);
 
-    // Intentar obtener de GitHub
     const githubDesc = obtainGitHubDescription(pr.id, pr.repo);
 
     if (githubDesc && githubDesc.length > 20) {
@@ -149,21 +159,20 @@ async function describePRs(config) {
       };
       console.log(`  ✓ Descripción obtenida de GitHub (${githubDesc.length} chars)`);
       githubCount++;
-    } else if (ollamaAvailable) {
-      // Generar con IA
-      console.log(`  Generando resumen con IA...`);
+    } else if (geminiAvailable) {
+      console.log(`  Generando resumen con Gemini AI...`);
       const diff = obtainGitHubDiff(pr.id, pr.repo);
 
       if (diff) {
-        const aiDesc = await generateAIDescription(diff, pr.label || `PR #${pr.id}`);
+        const aiDesc = await generateGeminiDescription(diff, pr.label || `PR #${pr.id}`);
 
         if (aiDesc) {
           descriptions[prKey] = {
-            source: 'ai',
+            source: 'gemini',
             text: aiDesc,
             prTitle: pr.label || ''
           };
-          console.log(`  ✓ Descripción generada con IA (${aiDesc.length} chars)`);
+          console.log(`  ✓ Descripción generada con Gemini (${aiDesc.length} chars)`);
           aiCount++;
         } else {
           console.log(`  ✗ No se pudo generar descripción`);
@@ -174,7 +183,7 @@ async function describePRs(config) {
         skippedCount++;
       }
     } else {
-      console.log(`  ✗ Sin descripción en GitHub y Ollama no disponible`);
+      console.log(`  ✗ Sin descripción en GitHub y Gemini no configurado`);
       skippedCount++;
     }
   }
@@ -182,7 +191,7 @@ async function describePRs(config) {
   saveDescriptions(outputDir, descriptions);
 
   console.log(`\n✓ Descripciones guardadas en ${outputDir}/descriptions.json`);
-  console.log(`  GitHub: ${githubCount} | IA: ${aiCount} | Saltados: ${skippedCount}`);
+  console.log(`  GitHub: ${githubCount} | Gemini: ${aiCount} | Saltados: ${skippedCount}`);
 }
 
-module.exports = { describePRs, loadDescriptions, obtainGitHubDescription, generateAIDescription };
+module.exports = { describePRs, loadDescriptions, obtainGitHubDescription, generateGeminiDescription };
