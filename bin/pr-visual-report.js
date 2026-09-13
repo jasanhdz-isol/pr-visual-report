@@ -10,6 +10,7 @@ const { convertToPdf } = require('../src/pdf');
 const { loadConfig } = require('../src/utils');
 const { queryPRs, printPRs, prsToConfig } = require('../src/query');
 const { interactiveInit, interactiveQuery } = require('../src/interactive');
+const { describePRs } = require('../src/describe');
 
 const program = new Command();
 
@@ -82,12 +83,26 @@ program
   });
 
 program
+  .command('describe')
+  .description('Obtener/generar descripciones para PRs (GitHub + IA)')
+  .option('-c, --config <config>', 'Archivo de configuración JSON')
+  .action(async (options) => {
+    if (!options.config) {
+      console.error('Error: Proporciona --config con el archivo de configuración');
+      process.exit(1);
+    }
+    const config = loadConfig(options.config);
+    await describePRs(config);
+  });
+
+program
   .command('report')
   .description('Generar reporte markdown desde capturas')
   .option('-i, --input <input>', 'Directorio con capturas', './capturas')
   .option('-o, --output <output>', 'Archivo markdown de salida', './reporte.md')
   .option('-t, --template <template>', 'Template markdown personalizado')
   .option('-s, --separate-by-month', 'Generar archivos separados por mes')
+  .option('-d, --descriptions <descriptions>', 'Archivo descriptions.json')
   .action(async (options) => {
     await generateReport(options);
   });
@@ -106,6 +121,7 @@ program
   .description('Flujo completo: capturar + reporte + PDF')
   .option('-c, --config <config>', 'Archivo de configuración JSON')
   .option('-s, --separate-by-month', 'Generar archivos separados por mes')
+  .option('-d, --with-descriptions', 'Incluir descripciones (GitHub + IA)')
   .action(async (options) => {
     if (!options.config) {
       console.error('Error: Proporciona --config con el archivo de configuración');
@@ -115,10 +131,18 @@ program
     console.log('=== Flujo completo: pr-visual-report ===\n');
 
     // Capturar screenshots
+    console.log('1. Capturando screenshots...\n');
     await capturePRs(config);
+
+    // Obtener descripciones si se solicita
+    if (options.withDescriptions) {
+      console.log('\n2. Obteniendo descripciones...\n');
+      await describePRs(config);
+    }
 
     // Generar reportes markdown
     const outputDir = path.resolve(config.output || './output');
+    console.log('\n3. Generando reportes...\n');
     const reportOptions = {
       input: outputDir,
       output: path.join(outputDir, 'reporte.md'),
@@ -127,6 +151,50 @@ program
     await generateReport(reportOptions);
 
     // Generar PDFs
+    console.log('\n4. Generando PDFs...\n');
+    const mdFiles = fs.readdirSync(outputDir).filter(f => f.endsWith('.md'));
+    for (const mdFile of mdFiles) {
+      const mdPath = path.join(outputDir, mdFile);
+      const pdfPath = mdPath.replace('.md', '.pdf');
+      await convertToPdf({ input: mdPath, output: pdfPath });
+    }
+
+    console.log('\n=== Proceso completado ===');
+  });
+
+program
+  .command('full')
+  .description('Flujo completo: capture + describe + report + pdf')
+  .option('-c, --config <config>', 'Archivo de configuración JSON')
+  .option('-s, --separate-by-month', 'Generar archivos separados por mes')
+  .action(async (options) => {
+    if (!options.config) {
+      console.error('Error: Proporciona --config con el archivo de configuración');
+      process.exit(1);
+    }
+    const config = loadConfig(options.config);
+    console.log('=== Flujo completo: pr-visual-report ===\n');
+
+    // 1. Capturar screenshots
+    console.log('1/4. Capturando screenshots...\n');
+    await capturePRs(config);
+
+    // 2. Obtener descripciones
+    console.log('\n2/4. Obteniendo descripciones (GitHub + IA)...\n');
+    await describePRs(config);
+
+    // 3. Generar reportes markdown
+    const outputDir = path.resolve(config.output || './output');
+    console.log('\n3/4. Generando reportes...\n');
+    const reportOptions = {
+      input: outputDir,
+      output: path.join(outputDir, 'reporte.md'),
+      separateByMonth: options.separateByMonth
+    };
+    await generateReport(reportOptions);
+
+    // 4. Generar PDFs
+    console.log('\n4/4. Generando PDFs...\n');
     const mdFiles = fs.readdirSync(outputDir).filter(f => f.endsWith('.md'));
     for (const mdFile of mdFiles) {
       const mdPath = path.join(outputDir, mdFile);

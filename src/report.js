@@ -1,8 +1,9 @@
 const fs = require('fs');
 const path = require('path');
+const { loadDescriptions } = require('./describe');
 
 function generateReport(options) {
-  const { input, output, template } = options;
+  const { input, output, template, descriptions: descriptionsPath } = options;
   const capturasDir = path.resolve(input || './capturas');
   const outputPath = path.resolve(output || './reporte.md');
 
@@ -16,6 +17,19 @@ function generateReport(options) {
   if (files.length === 0) {
     console.error('Error: No hay capturas en el directorio especificado');
     process.exit(1);
+  }
+
+  // Cargar descripciones si existen
+  const descriptionsFile = descriptionsPath || path.join(capturasDir, 'descriptions.json');
+  let descriptions = {};
+  if (fs.existsSync(descriptionsFile)) {
+    descriptions = JSON.parse(fs.readFileSync(descriptionsFile, 'utf8'));
+  } else {
+    // Intentar cargar desde el directorio padre
+    const parentDesc = path.join(path.dirname(capturasDir), 'descriptions.json');
+    if (fs.existsSync(parentDesc)) {
+      descriptions = JSON.parse(fs.readFileSync(parentDesc, 'utf8'));
+    }
   }
 
   // Agrupar archivos por mes y PR
@@ -47,7 +61,7 @@ function generateReport(options) {
     const baseName = path.basename(outputPath, '.md');
 
     monthKeys.forEach(month => {
-      const monthMarkdown = generateMonthMarkdown(month, groups[month], imageDir);
+      const monthMarkdown = generateMonthMarkdown(month, groups[month], imageDir, descriptions, options);
       const monthOutput = path.join(outputDir, `${month}_${baseName}.md`);
       fs.writeFileSync(monthOutput, monthMarkdown);
       console.log(`✓ Reporte generado: ${monthOutput}`);
@@ -55,7 +69,7 @@ function generateReport(options) {
   } else {
     // Generar un solo archivo
     const month = monthKeys[0];
-    const markdown = generateMonthMarkdown(month, groups[month], imageDir);
+    const markdown = generateMonthMarkdown(month, groups[month], imageDir, descriptions, options);
     fs.writeFileSync(outputPath, markdown);
     console.log(`✓ Reporte generado: ${outputPath}`);
   }
@@ -64,10 +78,12 @@ function generateReport(options) {
   console.log(`  ${totalPRs} PRs, ${files.length} imágenes`);
 }
 
-function generateMonthMarkdown(month, prs, imageDir = '') {
+function generateMonthMarkdown(month, prs, imageDir, descriptions, options) {
+  const monthName = month.charAt(0).toUpperCase() + month.slice(1);
   let markdown = '';
 
-  markdown += `# Reporte de Actividades - ${month.charAt(0).toUpperCase() + month.slice(1)}\n\n`;
+  // Encabezado
+  markdown += `# Reporte de Actividades - ${monthName}\n\n`;
   markdown += `**Fecha de generación:** ${new Date().toLocaleDateString('es-ES')}\n\n`;
   markdown += `---\n\n`;
 
@@ -77,27 +93,37 @@ function generateMonthMarkdown(month, prs, imageDir = '') {
   markdown += `|-----|-------------|\n`;
 
   for (const [pr, images] of Object.entries(prs).sort((a, b) => parseInt(a[0]) - parseInt(b[0]))) {
-    const diffImages = images.filter(i => i.kind === 'diff_0');
-    const hasDiff = diffImages.length > 0;
-    markdown += `| [PR #${pr}](https://github.com/*/pull/${pr}) | ${hasDiff ? 'Capturas disponibles' : 'Solo descripción'} |\n`;
+    const desc = descriptions[pr];
+    const descText = desc ? desc.text.substring(0, 60) + (desc.text.length > 60 ? '...' : '') : 'Sin descripción';
+    markdown += `| [PR #${pr}](https://github.com/*/pull/${pr}) | ${descText} |\n`;
   }
 
   markdown += `\n---\n\n`;
   markdown += `## Capturas\n\n`;
 
   // Capturas por PR
+  let sectionNumber = 1;
   for (const [pr, images] of Object.entries(prs).sort((a, b) => parseInt(a[0]) - parseInt(b[0]))) {
-    markdown += `### PR #${pr}\n\n`;
+    const desc = descriptions[pr];
 
-    // Descripción primero
+    // Título con descripción si existe
+    if (desc && desc.text) {
+      markdown += `### ${sectionNumber}. PR #${pr} - ${desc.prTitle || ''}\n\n`;
+
+      // Agregar descripción completa
+      markdown += `${desc.text}\n\n`;
+    } else {
+      markdown += `### ${sectionNumber}. PR #${pr}\n\n`;
+    }
+
+    // Descripción
     const descImage = images.find(i => i.kind === 'desc');
     if (descImage) {
-      markdown += `**Descripción:**\n\n`;
       const imgPath = imageDir ? `${imageDir}/${descImage.file}` : descImage.file;
       markdown += `![PR #${pr} descripción](${imgPath})\n\n`;
     }
 
-    // Luego diffs
+    // Diffs
     const diffImages = images
       .filter(i => i.kind.startsWith('diff_'))
       .sort((a, b) => a.idx - b.idx);
@@ -109,9 +135,11 @@ function generateMonthMarkdown(month, prs, imageDir = '') {
         markdown += `![PR #${pr} diff](${imgPath})\n\n`;
       });
     }
+
+    markdown += `---\n\n`;
+    sectionNumber++;
   }
 
-  markdown += `---\n\n`;
   return markdown;
 }
 
