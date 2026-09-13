@@ -8,6 +8,8 @@ const { capturePRs } = require('../src/capture');
 const { generateReport } = require('../src/report');
 const { convertToPdf } = require('../src/pdf');
 const { loadConfig } = require('../src/utils');
+const { queryPRs, printPRs, prsToConfig } = require('../src/query');
+const { interactiveInit, interactiveQuery } = require('../src/interactive');
 
 const program = new Command();
 
@@ -15,6 +17,37 @@ program
   .name('pr-visual-report')
   .description('Herramienta CLI para capturar screenshots de PRs de GitHub y generar reportes PDF')
   .version('1.0.0');
+
+program
+  .command('init')
+  .description('Asistente interactivo para configurar y generar reportes')
+  .action(async () => {
+    await interactiveInit();
+  });
+
+program
+  .command('query')
+  .description('Consultar PRs por rango de fechas')
+  .option('-r, --repo <repo>', 'Repositorio en formato owner/repo')
+  .option('-a, --author <author>', 'Autor del PR (usuario de GitHub)')
+  .option('-f, --from <from>', 'Fecha inicio (YYYY-MM-DD)')
+  .option('-t, --to <to>', 'Fecha fin (YYYY-MM-DD)')
+  .option('-s, --state <state>', 'Estado del PR (all, open, closed, merged)', 'all')
+  .option('-i, --interactive', 'Modo interactivo')
+  .action(async (options) => {
+    if (options.interactive) {
+      await interactiveQuery();
+      return;
+    }
+
+    if (!options.repo) {
+      console.error('Error: Se requiere --repo (owner/repo)');
+      process.exit(1);
+    }
+
+    const prs = queryPRs(options);
+    printPRs(prs);
+  });
 
 program
   .command('login')

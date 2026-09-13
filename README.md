@@ -4,13 +4,15 @@ Herramienta CLI para capturar screenshots de Pull Requests de GitHub y generar r
 
 ## Características
 
+- **Modo interactivo** - Asistente paso a paso para configurar reportes
+- **Búsqueda por fecha** - Encuentra automáticamente tus PRs por rango de fechas
 - Captura automática de descripción y diff de PRs
 - Generación de reportes en Markdown
 - Conversión a PDF con estilo profesional
 - Soporte para repositorios públicos y privados
 - Autenticación mediante cookies de GitHub
 - Configuración flexible via JSON
-- **Soporte para reportes por mes** (archivos separados)
+- **Soporte para reportes por día, mes y año**
 
 ## Instalación
 
@@ -28,47 +30,38 @@ npx playwright install chromium
 
 ## Uso rápido
 
-### 1. Autenticarse
+### 1. Autenticarse (una sola vez)
 
 ```bash
 pr-visual-report login
 ```
 
-Se abrirá un navegador para que inicies sesión en GitHub.
-
-### 2. Capturar screenshots
+### 2. Flujo interactivo (recomendado para principiantes)
 
 ```bash
-# Usando línea de comandos
-pr-visual-report capture --repo owner/repo --prs 123,456,789
-
-# Usando archivo de configuración
-pr-visual-report capture --config pr-list.json
+pr-visual-report init
 ```
 
-### 3. Generar reporte Markdown
+El asistente te preguntará:
+1. ¿Cuál es el repositorio?
+2. ¿Tu usuario de GitHub?
+3. ¿Qué periodo? (día/mes/año/rango personalizado)
+4. ¿Generar capturas?
+
+### 3. Consultar PRs por fecha
 
 ```bash
-# Un solo archivo
-pr-visual-report report --input capturas/ --output reporte.md
+# Modo interactivo
+pr-visual-report query --interactive
 
-# Archivos separados por mes
-pr-visual-report report --input capturas/ --output reporte.md --separate-by-month
+# Modo directo
+pr-visual-report query --repo owner/repo --author mi-usuario --from 2026-08-01 --to 2026-08-31
 ```
 
-### 4. Convertir a PDF
+### 4. Generar reporte completo
 
 ```bash
-pr-visual-report pdf --input reporte.md --output reporte.pdf
-```
-
-### 5. Flujo completo
-
-```bash
-# Un solo reporte
-pr-visual-report generate --config pr-list.json
-
-# Reportes separados por mes
+# Flujo completo con configuración
 pr-visual-report generate --config pr-list.json --separate-by-month
 ```
 
@@ -76,28 +69,44 @@ pr-visual-report generate --config pr-list.json --separate-by-month
 
 | Comando | Descripción |
 |---------|-------------|
+| `init` | Asistente interactivo para configurar y generar reportes |
+| `query` | Consultar PRs por rango de fechas |
 | `login` | Abrir navegador para autenticarse |
 | `capture` | Capturar screenshots de PRs |
 | `report` | Generar reporte Markdown |
 | `pdf` | Convertir Markdown a PDF |
 | `generate` | Flujo completo (capture + report + pdf) |
 
-## Archivo de configuración
+## Flujo de trabajo
 
-### Formato simple (todos los PRs juntos)
+### Flujo completo (recomendado)
 
-```json
-{
-  "repo": "owner/repo-name",
-  "output": "./output",
-  "prs": [
-    { "id": 123, "label": "Descripción del PR" },
-    { "id": 456, "label": "Otro PR" }
-  ]
-}
+```bash
+# 1. Autenticarse (una sola vez)
+pr-visual-report login
+
+# 2. Ejecutar asistente interactivo
+pr-visual-report init
+
+# 3. El asistente genera la configuración y ejecuta todo
 ```
 
-### Formato por mes (archivos separados)
+### Flujo manual
+
+```bash
+# 1. Consultar PRs
+pr-visual-report query --repo owner/repo --author mi-usuario --from 2026-08-01 --to 2026-08-31
+
+# 2. Crear archivo de configuración manualmente
+# Ver examples/pr-list-by-month.json
+
+# 3. Ejecutar flujo completo
+pr-visual-report generate --config pr-list.json --separate-by-month
+```
+
+## Archivo de configuración
+
+### Formato por mes (recomendado)
 
 ```json
 {
@@ -114,17 +123,44 @@ pr-visual-report generate --config pr-list.json --separate-by-month
     {
       "name": "julio",
       "prs": [
-        { "id": 456, "label": "Feature C" },
-        { "id": 457, "label": "Feature D" }
+        { "id": 456, "label": "Feature C" }
       ]
     }
   ]
 }
 ```
 
+### Formato simple
+
+```json
+{
+  "repo": "owner/repo-name",
+  "output": "./output",
+  "prs": [
+    { "id": 123, "label": "Descripción del PR" },
+    { "id": 456, "label": "Otro PR" }
+  ]
+}
+```
+
 ## Opciones de línea de comandos
 
-### capture
+### init (Asistente interactivo)
+
+No tiene opciones adicionales. El asistente guía el proceso completo.
+
+### query (Consultar PRs)
+
+| Opción | Descripción | Default |
+|--------|-------------|---------|
+| `-r, --repo <repo>` | Repositorio (owner/repo) | - |
+| `-a, --author <author>` | Autor del PR | - |
+| `-f, --from <from>` | Fecha inicio (YYYY-MM-DD) | - |
+| `-t, --to <to>` | Fecha fin (YYYY-MM-DD) | - |
+| `-s, --state <state>` | Estado (all, open, closed, merged) | `all` |
+| `-i, --interactive` | Modo interactivo | false |
+
+### capture (Capturar screenshots)
 
 | Opción | Descripción | Default |
 |--------|-------------|---------|
@@ -133,37 +169,58 @@ pr-visual-report generate --config pr-list.json --separate-by-month
 | `-c, --config <config>` | Archivo de configuración JSON | - |
 | `-o, --output <output>` | Directorio de salida | `./capturas` |
 
-### report
+### report (Generar Markdown)
 
 | Opción | Descripción | Default |
 |--------|-------------|---------|
 | `-i, --input <input>` | Directorio con capturas | `./capturas` |
 | `-o, --output <output>` | Archivo markdown de salida | `./reporte.md` |
-| `-t, --template <template>` | Template markdown personalizado | - |
 | `-s, --separate-by-month` | Generar archivos separados por mes | false |
 
-### pdf
+### pdf (Convertir a PDF)
 
 | Opción | Descripción | Default |
 |--------|-------------|---------|
 | `-i, --input <input>` | Archivo markdown de entrada | `./reporte.md` |
 | `-o, --output <output>` | Archivo PDF de salida | `./reporte.pdf` |
 
+### generate (Flujo completo)
+
+| Opción | Descripción | Default |
+|--------|-------------|---------|
+| `-c, --config <config>` | Archivo de configuración JSON | - |
+| `-s, --separate-by-month` | Generar archivos separados por mes | false |
+
+## Ejemplo completo
+
+```bash
+# 1. Autenticarse
+pr-visual-report login
+
+# 2. Ejecutar asistente
+pr-visual-report init
+
+# Ejemplo de interacción:
+# ? Repositorio (owner/repo): Servicios-Liverpool-Infraestructura/automatizacion_foro_fotografico_frontend
+# ? Tu usuario de GitHub: jasanhdz-isol
+# ? Periodo: Mes completo
+# ? Mes: Agosto
+# ? Año: 2026
+#
+# Buscando PRs de jasanhdz-isol del 2026-08-01 al 2026-08-31...
+#
+# Se encontraron 9 PRs:
+#   1. #897 - fix(front-qa): refine enrichment validation
+#   2. #896 - feat(front-qa): validate enrichment SKUs
+#   ...
+#
+# ? ¿Generar capturas de estos PRs? S
+#
+# ✓ Configuración guardada en: output/pr-list.json
+# Ejecuta: pr-visual-report generate --config output/pr-list.json --separate-by-month
+```
+
 ## Estructura de salida
-
-### Formato simple
-
-```
-output/
-├── capturas/
-│   ├── 2024-01_pr123_desc.png
-│   ├── 2024-01_pr123_diff_0.png
-│   └── ...
-├── reporte.md
-└── reporte.pdf
-```
-
-### Formato por mes
 
 ```
 output/
@@ -172,32 +229,18 @@ output/
 │   ├── junio_pr123_diff_0.png
 │   ├── julio_pr456_desc.png
 │   └── ...
+├── pr-list.json
 ├── junio_reporte.md
 ├── julio_reporte.md
 ├── junio_reporte.pdf
 └── julio_reporte.pdf
 ```
 
-## Ejemplo completo
-
-```bash
-# 1. Autenticarse (una sola vez)
-pr-visual-report login
-
-# 2. Capturar PRs por mes
-pr-visual-report generate --config pr-list.json --separate-by-month
-
-# Resultado:
-# - output/junio_reporte.md
-# - output/julio_reporte.md
-# - output/junio_reporte.pdf
-# - output/julio_reporte.pdf
-```
-
 ## Requisitos
 
 - Node.js >= 18.0.0
 - npm
+- GitHub CLI (`gh`) autenticado
 - Python 3 (para detección de imágenes en blanco)
 - Pillow (Python): `pip install Pillow`
 
