@@ -10,12 +10,13 @@ Herramienta CLI para capturar screenshots de Pull Requests de GitHub y generar r
 - Soporte para repositorios públicos y privados
 - Autenticación mediante cookies de GitHub
 - Configuración flexible via JSON
+- **Soporte para reportes por mes** (archivos separados)
 
 ## Instalación
 
 ```bash
 # Clonar el repositorio
-git clone https://github.com/jasan-isol/pr-visual-report.git
+git clone https://github.com/jasanhdz-isol/pr-visual-report.git
 cd pr-visual-report
 
 # Instalar dependencias
@@ -48,7 +49,11 @@ pr-visual-report capture --config pr-list.json
 ### 3. Generar reporte Markdown
 
 ```bash
+# Un solo archivo
 pr-visual-report report --input capturas/ --output reporte.md
+
+# Archivos separados por mes
+pr-visual-report report --input capturas/ --output reporte.md --separate-by-month
 ```
 
 ### 4. Convertir a PDF
@@ -60,7 +65,11 @@ pr-visual-report pdf --input reporte.md --output reporte.pdf
 ### 5. Flujo completo
 
 ```bash
+# Un solo reporte
 pr-visual-report generate --config pr-list.json
+
+# Reportes separados por mes
+pr-visual-report generate --config pr-list.json --separate-by-month
 ```
 
 ## Comandos disponibles
@@ -75,7 +84,7 @@ pr-visual-report generate --config pr-list.json
 
 ## Archivo de configuración
 
-Crea un archivo JSON con la lista de PRs:
+### Formato simple (todos los PRs juntos)
 
 ```json
 {
@@ -88,7 +97,7 @@ Crea un archivo JSON con la lista de PRs:
 }
 ```
 
-### Ejemplo con múltiples meses
+### Formato por mes (archivos separados)
 
 ```json
 {
@@ -98,13 +107,15 @@ Crea un archivo JSON con la lista de PRs:
     {
       "name": "junio",
       "prs": [
-        { "id": 123, "label": "Feature A" }
+        { "id": 123, "label": "Feature A" },
+        { "id": 124, "label": "Feature B" }
       ]
     },
     {
       "name": "julio",
       "prs": [
-        { "id": 456, "label": "Feature B" }
+        { "id": 456, "label": "Feature C" },
+        { "id": 457, "label": "Feature D" }
       ]
     }
   ]
@@ -129,6 +140,7 @@ Crea un archivo JSON con la lista de PRs:
 | `-i, --input <input>` | Directorio con capturas | `./capturas` |
 | `-o, --output <output>` | Archivo markdown de salida | `./reporte.md` |
 | `-t, --template <template>` | Template markdown personalizado | - |
+| `-s, --separate-by-month` | Generar archivos separados por mes | false |
 
 ### pdf
 
@@ -139,15 +151,47 @@ Crea un archivo JSON con la lista de PRs:
 
 ## Estructura de salida
 
+### Formato simple
+
 ```
 output/
 ├── capturas/
 │   ├── 2024-01_pr123_desc.png
 │   ├── 2024-01_pr123_diff_0.png
-│   ├── 2024-01_pr123_diff_1.png
 │   └── ...
 ├── reporte.md
 └── reporte.pdf
+```
+
+### Formato por mes
+
+```
+output/
+├── capturas/
+│   ├── junio_pr123_desc.png
+│   ├── junio_pr123_diff_0.png
+│   ├── julio_pr456_desc.png
+│   └── ...
+├── junio_reporte.md
+├── julio_reporte.md
+├── junio_reporte.pdf
+└── julio_reporte.pdf
+```
+
+## Ejemplo completo
+
+```bash
+# 1. Autenticarse (una sola vez)
+pr-visual-report login
+
+# 2. Capturar PRs por mes
+pr-visual-report generate --config pr-list.json --separate-by-month
+
+# Resultado:
+# - output/junio_reporte.md
+# - output/julio_reporte.md
+# - output/junio_reporte.pdf
+# - output/julio_reporte.pdf
 ```
 
 ## Requisitos
@@ -172,4 +216,4 @@ MIT
 
 ## Autor
 
-jasan-isol
+jasanhdz-isol

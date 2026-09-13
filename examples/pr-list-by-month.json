@@ -5,9 +5,9 @@
     {
       "name": "junio",
       "prs": [
-        { "id": 842, "label": "Búsqueda operadores" },
+        { "id": 842, "label": "Búsqueda operadores con debounce" },
         { "id": 846, "label": "GOB-1790" },
-        { "id": 855, "label": "WAITING_PHOTOGRAPH" },
+        { "id": 855, "label": "Estado WAITING_PHOTOGRAPH" },
         { "id": 857, "label": "Refactorización logística" }
       ]
     },

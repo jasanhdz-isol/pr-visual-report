@@ -6,12 +6,12 @@ const { hideGitHubUI, isBlank, sleep } = require('./utils');
 const VIEWPORT = { width: 1440, height: 900 };
 const CHUNK_HEIGHT = 900;
 
-async function capturePR(page, prInfo, index, total) {
-  const { id, label, repo } = prInfo;
+async function capturePR(page, prInfo, index, total, capturasDir) {
+  const { id, label, repo, month } = prInfo;
   const url = `https://github.com/${repo}/pull/${id}`;
-  const month = new Date().toISOString().slice(0, 7);
+  const monthPrefix = month || new Date().toISOString().slice(0, 7);
 
-  console.log(`[${index + 1}/${total}] PR #${id}${label ? ` - ${label}` : ''}...`);
+  console.log(`[${index + 1}/${total}] PR #${id}${label ? ` - ${label}` : ''} (${monthPrefix})...`);
 
   // Capturar descripción
   try {
@@ -24,7 +24,7 @@ async function capturePR(page, prInfo, index, total) {
     }
 
     await page.evaluate(hideGitHubUI());
-    const descPath = path.join(__dirname, '..', 'capturas', `${month}_pr${id}_desc.png`);
+    const descPath = path.join(capturasDir, `${monthPrefix}_pr${id}_desc.png`);
     await page.screenshot({ path: descPath, fullPage: false });
     console.log(`  ✓ Descripción capturada`);
   } catch (err) {
@@ -67,7 +67,7 @@ async function capturePR(page, prInfo, index, total) {
       await page.waitForTimeout(300);
       await page.evaluate(hideGitHubUI());
 
-      const filePath = path.join(__dirname, '..', 'capturas', `${month}_pr${id}_diff_${i}.png`);
+      const filePath = path.join(capturasDir, `${monthPrefix}_pr${id}_diff_${i}.png`);
       await page.screenshot({ path: filePath, fullPage: false });
 
       if (isBlank(filePath)) {
@@ -91,7 +91,7 @@ async function capturePR(page, prInfo, index, total) {
 }
 
 async function capturePRs(config) {
-  const capturasDir = path.join(process.cwd(), 'capturas');
+  const capturasDir = path.resolve(config.output || './capturas');
   if (!fs.existsSync(capturasDir)) {
     fs.mkdirSync(capturasDir, { recursive: true });
   }
@@ -110,14 +110,34 @@ async function capturePRs(config) {
   let success = 0;
   let failed = 0;
 
-  for (let i = 0; i < config.prs.length; i++) {
-    const prInfo = { ...config.prs[i], repo: config.repo };
+  // Soportar formato simple (config.prs) o formato por mes (config.months)
+  const prList = [];
+
+  if (config.months && Array.isArray(config.months)) {
+    // Formato por mes: [{ name: "junio", prs: [...] }]
+    config.months.forEach(monthData => {
+      monthData.prs.forEach(pr => {
+        prList.push({ ...pr, repo: config.repo, month: monthData.name });
+      });
+    });
+  } else if (config.prs && Array.isArray(config.prs)) {
+    // Formato simple: { prs: [...] }
+    config.prs.forEach(pr => {
+      prList.push({ ...pr, repo: config.repo });
+    });
+  } else {
+    console.error('Error: Configuración debe incluir "prs" o "months"');
+    await browser.close();
+    process.exit(1);
+  }
+
+  for (let i = 0; i < prList.length; i++) {
     try {
-      const ok = await capturePR(page, prInfo, i, config.prs.length);
+      const ok = await capturePR(page, prList[i], i, prList.length, capturasDir);
       if (ok) success++;
       else failed++;
     } catch (err) {
-      console.error(`Error PR #${config.prs[i].id}: ${err.message}\n`);
+      console.error(`Error PR #${prList[i].id}: ${err.message}\n`);
       failed++;
     }
   }

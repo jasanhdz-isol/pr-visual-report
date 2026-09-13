@@ -2,6 +2,7 @@
 
 const { Command } = require('commander');
 const path = require('path');
+const fs = require('fs');
 const { login } = require('../src/auth');
 const { capturePRs } = require('../src/capture');
 const { generateReport } = require('../src/report');
@@ -53,6 +54,7 @@ program
   .option('-i, --input <input>', 'Directorio con capturas', './capturas')
   .option('-o, --output <output>', 'Archivo markdown de salida', './reporte.md')
   .option('-t, --template <template>', 'Template markdown personalizado')
+  .option('-s, --separate-by-month', 'Generar archivos separados por mes')
   .action(async (options) => {
     await generateReport(options);
   });
@@ -70,6 +72,7 @@ program
   .command('generate')
   .description('Flujo completo: capturar + reporte + PDF')
   .option('-c, --config <config>', 'Archivo de configuración JSON')
+  .option('-s, --separate-by-month', 'Generar archivos separados por mes')
   .action(async (options) => {
     if (!options.config) {
       console.error('Error: Proporciona --config con el archivo de configuración');
@@ -77,11 +80,27 @@ program
     }
     const config = loadConfig(options.config);
     console.log('=== Flujo completo: pr-visual-report ===\n');
+
+    // Capturar screenshots
     await capturePRs(config);
-    const reportPath = path.join(config.output || './output', 'reporte.md');
-    await generateReport({ input: config.output, output: reportPath });
-    const pdfPath = reportPath.replace('.md', '.pdf');
-    await convertToPdf({ input: reportPath, output: pdfPath });
+
+    // Generar reportes markdown
+    const outputDir = path.resolve(config.output || './output');
+    const reportOptions = {
+      input: outputDir,
+      output: path.join(outputDir, 'reporte.md'),
+      separateByMonth: options.separateByMonth
+    };
+    await generateReport(reportOptions);
+
+    // Generar PDFs
+    const mdFiles = fs.readdirSync(outputDir).filter(f => f.endsWith('.md'));
+    for (const mdFile of mdFiles) {
+      const mdPath = path.join(outputDir, mdFile);
+      const pdfPath = mdPath.replace('.md', '.pdf');
+      await convertToPdf({ input: mdPath, output: pdfPath });
+    }
+
     console.log('\n=== Proceso completado ===');
   });
 
