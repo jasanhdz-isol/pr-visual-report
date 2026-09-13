@@ -59,8 +59,12 @@ function loadConfig(configPath) {
     process.exit(1);
   }
 
-  if (!config.prs || !Array.isArray(config.prs) || config.prs.length === 0) {
-    console.error('Error: El archivo de configuración debe incluir "prs" como array');
+  // Validar que tenga prs o months
+  const hasPrs = config.prs && Array.isArray(config.prs) && config.prs.length > 0;
+  const hasMonths = config.months && Array.isArray(config.months) && config.months.length > 0;
+
+  if (!hasPrs && !hasMonths) {
+    console.error('Error: El archivo de configuración debe incluir "prs" o "months" como array');
     process.exit(1);
   }
 

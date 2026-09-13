@@ -57,7 +57,7 @@ function generateHtml(mdContent) {
     a { color: #0f3460; text-decoration: none; }
   `;
 
-  const htmlBody = markdown.markdown(mdContent);
+  const htmlBody = markdown.parse(mdContent);
 
   return `<!DOCTYPE html>
 <html lang="es">

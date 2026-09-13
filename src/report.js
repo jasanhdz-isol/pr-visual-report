@@ -38,13 +38,16 @@ function generateReport(options) {
   const monthKeys = Object.keys(groups);
   const generateSeparate = monthKeys.length > 1 || options.separateByMonth;
 
+  // Determinar directorio relativo de imágenes
+  const outputDir = path.dirname(outputPath);
+  const imageDir = path.relative(outputDir, capturasDir);
+
   if (generateSeparate) {
     // Generar archivos separados por mes
-    const outputDir = path.dirname(outputPath);
     const baseName = path.basename(outputPath, '.md');
 
     monthKeys.forEach(month => {
-      const monthMarkdown = generateMonthMarkdown(month, groups[month]);
+      const monthMarkdown = generateMonthMarkdown(month, groups[month], imageDir);
       const monthOutput = path.join(outputDir, `${month}_${baseName}.md`);
       fs.writeFileSync(monthOutput, monthMarkdown);
       console.log(`✓ Reporte generado: ${monthOutput}`);
@@ -52,7 +55,7 @@ function generateReport(options) {
   } else {
     // Generar un solo archivo
     const month = monthKeys[0];
-    const markdown = generateMonthMarkdown(month, groups[month]);
+    const markdown = generateMonthMarkdown(month, groups[month], imageDir);
     fs.writeFileSync(outputPath, markdown);
     console.log(`✓ Reporte generado: ${outputPath}`);
   }
@@ -61,7 +64,7 @@ function generateReport(options) {
   console.log(`  ${totalPRs} PRs, ${files.length} imágenes`);
 }
 
-function generateMonthMarkdown(month, prs) {
+function generateMonthMarkdown(month, prs, imageDir = '') {
   let markdown = '';
 
   markdown += `# Reporte de Actividades - ${month.charAt(0).toUpperCase() + month.slice(1)}\n\n`;
@@ -90,7 +93,8 @@ function generateMonthMarkdown(month, prs) {
     const descImage = images.find(i => i.kind === 'desc');
     if (descImage) {
       markdown += `**Descripción:**\n\n`;
-      markdown += `![PR #${pr} descripción](capturas/${descImage.file})\n\n`;
+      const imgPath = imageDir ? `${imageDir}/${descImage.file}` : descImage.file;
+      markdown += `![PR #${pr} descripción](${imgPath})\n\n`;
     }
 
     // Luego diffs
@@ -101,7 +105,8 @@ function generateMonthMarkdown(month, prs) {
     if (diffImages.length > 0) {
       markdown += `**Diff (${diffImages.length} partes):**\n\n`;
       diffImages.forEach(img => {
-        markdown += `![PR #${pr} diff](capturas/${img.file})\n\n`;
+        const imgPath = imageDir ? `${imageDir}/${img.file}` : img.file;
+        markdown += `![PR #${pr} diff](${imgPath})\n\n`;
       });
     }
   }
