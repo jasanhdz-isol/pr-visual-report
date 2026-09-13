@@ -1,0 +1,33 @@
+{
+  "name": "pr-visual-report",
+  "version": "1.0.0",
+  "description": "Herramienta CLI para capturar screenshots de PRs de GitHub y generar reportes PDF visuales",
+  "main": "src/index.js",
+  "bin": {
+    "pr-visual-report": "./bin/pr-visual-report.js"
+  },
+  "scripts": {
+    "start": "node bin/pr-visual-report.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "github",
+    "pull-request",
+    "screenshot",
+    "report",
+    "pdf",
+    "playwright",
+    "cli"
+  ],
+  "author": "jasan-isol",
+  "license": "MIT",
+  "dependencies": {
+    "commander": "^11.1.0",
+    "markdown": "^0.5.0",
+    "pdf-lib": "^1.17.1",
+    "playwright": "^1.40.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

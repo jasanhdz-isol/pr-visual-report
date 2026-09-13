@@ -1,0 +1,24 @@
+# Dependencies
+node_modules/
+
+# Output files
+output/
+capturas/
+*.pdf
+*.html
+
+# Cookies (sensible)
+.github-cookies.json
+cookies.json
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+
+# Logs
+*.log
+npm-debug.log*

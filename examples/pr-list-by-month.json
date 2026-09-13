@@ -1,0 +1,33 @@
+{
+  "repo": "Servicios-Liverpool-Infraestructura/automatizacion_foro_fotografico_frontend",
+  "output": "./output",
+  "months": [
+    {
+      "name": "junio",
+      "prs": [
+        { "id": 842, "label": "Búsqueda operadores" },
+        { "id": 846, "label": "GOB-1790" },
+        { "id": 855, "label": "WAITING_PHOTOGRAPH" },
+        { "id": 857, "label": "Refactorización logística" }
+      ]
+    },
+    {
+      "name": "julio",
+      "prs": [
+        { "id": 866, "label": "Auditoría gestión usuarios" },
+        { "id": 868, "label": "Mutaciones de estado" },
+        { "id": 872, "label": "Toolbar selección" },
+        { "id": 879, "label": "Optimización Material UI" }
+      ]
+    },
+    {
+      "name": "agosto",
+      "prs": [
+        { "id": 889, "label": "Envío masivo P360" },
+        { "id": 890, "label": "Generación IA" },
+        { "id": 891, "label": "Títulos/descripciones IA" },
+        { "id": 902, "label": "Remoción temporal IA" }
+      ]
+    }
+  ]
+}
