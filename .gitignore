@@ -11,6 +11,9 @@ capturas/
 .github-cookies.json
 cookies.json
 
+# Environment variables (sensible)
+.env
+
 # OS files
 .DS_Store
 Thumbs.db

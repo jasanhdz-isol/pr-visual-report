@@ -247,14 +247,26 @@ output/
 - Python 3 (para detección de imágenes en blanco)
 - Pillow (Python): `pip install Pillow`
 
-### Para descripciones con IA (opcional)
+### Para descripciones con IA (opcional pero recomendado)
 
-- API key de Gemini (gratis): https://aistudio.google.com/apikey
-- Configurar variable de entorno:
+El asistente interactivo te pedirá la API key automáticamente. También puedes configurarla manualmente:
+
+1. Ve a https://aistudio.google.com/apikey
+2. Inicia sesión con tu cuenta de Google
+3. Haz clic en **"Create API Key"**
+4. Selecciona un proyecto existente o crea uno nuevo
+5. Copia la API key generada
+6. Configura la variable de entorno:
 
 ```bash
+# Opción 1: Variable de entorno temporal
 export GEMINI_API_KEY=tu_api_key_aqui
+
+# Opción 2: Guardar en archivo .env (recomendado)
+echo "GEMINI_API_KEY=tu_api_key_aqui" > .env
 ```
+
+**Nota:** La API key es gratuita y permite hasta 15 solicitudes por minuto.
 
 ## Documentación
 

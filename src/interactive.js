@@ -3,6 +3,7 @@ const fs = require('fs');
 const path = require('path');
 const { queryPRs, printPRs, prsToConfig } = require('./query');
 const { execSync } = require('child_process');
+require('dotenv').config({ path: path.join(__dirname, '..', '.env') });
 
 function getMonthName(month) {
   const months = [
@@ -16,8 +17,50 @@ function getDaysInMonth(year, month) {
   return new Date(year, month + 1, 0).getDate();
 }
 
+function saveEnv(key, value) {
+  const envPath = path.join(__dirname, '..', '.env');
+  let envContent = '';
+  if (fs.existsSync(envPath)) {
+    envContent = fs.readFileSync(envPath, 'utf8');
+  }
+  const regex = new RegExp(`^${key}=.*$`, 'm');
+  if (regex.test(envContent)) {
+    envContent = envContent.replace(regex, `${key}=${value}`);
+  } else {
+    envContent += `\n${key}=${value}\n`;
+  }
+  fs.writeFileSync(envPath, envContent.trim() + '\n');
+}
+
 async function interactiveInit() {
   console.log('\n=== pr-visual-report - Asistente de configuración ===\n');
+
+  // Verificar Gemini API Key
+  if (!process.env.GEMINI_API_KEY) {
+    console.log('⚠ No se encontró GEMINI_API_KEY en el archivo .env\n');
+    console.log('Para generar descripciones con IA necesitas una API key gratuita de Google Gemini.\n');
+    console.log('Pasos para obtenerla:');
+    console.log('  1. Ve a https://aistudio.google.com/apikey');
+    console.log('  2. Inicia sesión con tu cuenta de Google');
+    console.log('  3. Haz clic en "Create API Key"');
+    console.log('  4. Copia la key generada\n');
+
+    const apiKeyResponse = await prompts({
+      type: 'text',
+      name: 'apiKey',
+      message: 'Pega tu API key de Gemini (deja vacío para omitir):',
+    });
+
+    if (apiKeyResponse.apiKey) {
+      saveEnv('GEMINI_API_KEY', apiKeyResponse.apiKey);
+      process.env.GEMINI_API_KEY = apiKeyResponse.apiKey;
+      console.log('\n✓ API key guardada en .env\n');
+    } else {
+      console.log('\n○ Omitido. Solo se usarán descripciones de GitHub.\n');
+    }
+  } else {
+    console.log('✓ Gemini API key configurada\n');
+  }
 
   // Preguntar repositorio
   const repoResponse = await prompts({
