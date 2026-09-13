@@ -92,34 +92,49 @@ Resumen:`;
   }
 }
 
-async function translateToSpanish(text) {
-  try {
-    const apiKey = getGeminiApiKey();
-    const prompt = `Traduce el siguiente texto al español. Mantén el formato original (listas, negritas, etc). Responde SOLO con el texto traducido, sin explicaciones adicionales:
+async function translateToSpanish(text, retries = 3) {
+  for (let attempt = 1; attempt <= retries; attempt++) {
+    try {
+      const apiKey = getGeminiApiKey();
+      const prompt = `Traduce el siguiente texto al español. Mantén el formato original (listas, negritas, etc). Responde SOLO con el texto traducido, sin explicaciones adicionales:
 
 ${text}`;
 
-    const response = await fetch(`${GEMINI_API_URL}?key=${apiKey}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        contents: [{ parts: [{ text: prompt }] }],
-        generationConfig: {
-          temperature: 0.3,
-          maxOutputTokens: 1000
-        }
-      })
-    });
+      const response = await fetch(`${GEMINI_API_URL}?key=${apiKey}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: prompt }] }],
+          generationConfig: {
+            temperature: 0.3,
+            maxOutputTokens: 1000
+          }
+        })
+      });
 
-    if (!response.ok) {
+      if (!response.ok) {
+        if (attempt < retries) {
+          await new Promise(r => setTimeout(r, 1000 * attempt));
+          continue;
+        }
+        return text;
+      }
+
+      const data = await response.json();
+      const translated = data.candidates?.[0]?.content?.parts?.[0]?.text;
+      if (translated && translated !== text) {
+        return translated;
+      }
+      return text;
+    } catch {
+      if (attempt < retries) {
+        await new Promise(r => setTimeout(r, 1000 * attempt));
+        continue;
+      }
       return text;
     }
-
-    const data = await response.json();
-    return data.candidates?.[0]?.content?.parts?.[0]?.text || text;
-  } catch {
-    return text;
   }
+  return text;
 }
 
 function loadDescriptions(outputDir) {
@@ -227,4 +242,4 @@ async function describePRs(config) {
   console.log(`  GitHub: ${githubCount} | Gemini: ${aiCount} | Saltados: ${skippedCount}`);
 }
 
-module.exports = { describePRs, loadDescriptions, obtainGitHubDescription, generateGeminiDescription };
+module.exports = { describePRs, loadDescriptions, obtainGitHubDescription, generateGeminiDescription, translateToSpanish };
