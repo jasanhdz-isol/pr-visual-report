@@ -92,6 +92,36 @@ Resumen:`;
   }
 }
 
+async function translateToSpanish(text) {
+  try {
+    const apiKey = getGeminiApiKey();
+    const prompt = `Traduce el siguiente texto al español. Mantén el formato original (listas, negritas, etc). Responde SOLO con el texto traducido, sin explicaciones adicionales:
+
+${text}`;
+
+    const response = await fetch(`${GEMINI_API_URL}?key=${apiKey}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contents: [{ parts: [{ text: prompt }] }],
+        generationConfig: {
+          temperature: 0.3,
+          maxOutputTokens: 1000
+        }
+      })
+    });
+
+    if (!response.ok) {
+      return text;
+    }
+
+    const data = await response.json();
+    return data.candidates?.[0]?.content?.parts?.[0]?.text || text;
+  } catch {
+    return text;
+  }
+}
+
 function loadDescriptions(outputDir) {
   const descPath = path.join(outputDir, 'descriptions.json');
   if (fs.existsSync(descPath)) {
@@ -153,12 +183,14 @@ async function describePRs(config) {
     const githubDesc = obtainGitHubDescription(pr.id, pr.repo);
 
     if (githubDesc && githubDesc.length > 20) {
+      console.log(`  Traduciendo descripción al español...`);
+      const translatedDesc = geminiAvailable ? await translateToSpanish(githubDesc) : githubDesc;
       descriptions[prKey] = {
         source: 'github',
-        text: githubDesc,
+        text: translatedDesc,
         prTitle: pr.label || ''
       };
-      console.log(`  ✓ Descripción obtenida de GitHub (${githubDesc.length} chars)`);
+      console.log(`  ✓ Descripción obtenida de GitHub y traducida (${translatedDesc.length} chars)`);
       githubCount++;
     } else if (geminiAvailable) {
       console.log(`  Generando resumen con Gemini AI...`);
